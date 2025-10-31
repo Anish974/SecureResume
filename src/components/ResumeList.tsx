@@ -25,16 +25,25 @@ const ResumeList = ({ userId }: ResumeListProps) => {
 
   const fetchResumes = async () => {
     try {
+      console.log("Fetching resumes for user:", userId);
+      
       const { data, error } = await supabase
         .from("resumes")
         .select("*")
         .eq("user_id", userId)
         .order("uploaded_at", { ascending: false });
 
-      if (error) throw error;
+      console.log("Fetch resumes response:", { data, error });
+
+      if (error) {
+        console.error("Fetch resumes error:", error);
+        throw error;
+      }
+      
       setResumes(data || []);
     } catch (error: any) {
-      toast.error("Failed to load resumes");
+      console.error("Failed to load resumes:", error);
+      toast.error(`Failed to load resumes: ${error.message || "Network error"}`);
     } finally {
       setLoading(false);
     }
@@ -53,11 +62,18 @@ const ResumeList = ({ userId }: ResumeListProps) => {
 
   const handleDownload = async (resume: Resume) => {
     try {
+      console.log("Downloading resume:", resume.file_path);
+      
       const { data, error } = await supabase.storage
         .from("resumes")
         .download(resume.file_path);
 
-      if (error) throw error;
+      console.log("Download response:", { data, error });
+
+      if (error) {
+        console.error("Download error:", error);
+        throw error;
+      }
 
       const url = URL.createObjectURL(data);
       const a = document.createElement("a");
@@ -70,7 +86,8 @@ const ResumeList = ({ userId }: ResumeListProps) => {
 
       toast.success("Resume downloaded");
     } catch (error: any) {
-      toast.error("Failed to download resume");
+      console.error("Download failed:", error);
+      toast.error(`Failed to download: ${error.message || "Network error"}`);
     }
   };
 

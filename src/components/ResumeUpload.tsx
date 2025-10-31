@@ -46,13 +46,28 @@ const ResumeUpload = ({ userId }: ResumeUploadProps) => {
       const fileName = `${Date.now()}.${fileExt}`;
       const filePath = `${userId}/${fileName}`;
 
-      const { error: uploadError } = await supabase.storage
+      console.log("Uploading file:", {
+        fileName: selectedFile.name,
+        fileSize: selectedFile.size,
+        fileType: selectedFile.type,
+        filePath,
+      });
+
+      const { data: uploadData, error: uploadError } = await supabase.storage
         .from("resumes")
-        .upload(filePath, selectedFile);
+        .upload(filePath, selectedFile, {
+          cacheControl: '3600',
+          upsert: false
+        });
 
-      if (uploadError) throw uploadError;
+      console.log("Upload response:", { uploadData, uploadError });
 
-      const { error: dbError } = await supabase.from("resumes").insert({
+      if (uploadError) {
+        console.error("Storage upload error:", uploadError);
+        throw new Error(`Upload failed: ${uploadError.message}`);
+      }
+
+      const { data: dbData, error: dbError } = await supabase.from("resumes").insert({
         user_id: userId,
         file_name: selectedFile.name,
         file_path: filePath,
@@ -60,7 +75,14 @@ const ResumeUpload = ({ userId }: ResumeUploadProps) => {
         mime_type: selectedFile.type,
       });
 
-      if (dbError) throw dbError;
+      console.log("Database insert response:", { dbData, dbError });
+
+      if (dbError) {
+        console.error("Database insert error:", dbError);
+        // Try to clean up the uploaded file
+        await supabase.storage.from("resumes").remove([filePath]);
+        throw new Error(`Database error: ${dbError.message}`);
+      }
 
       toast.success("Resume uploaded successfully!");
       setSelectedFile(null);
@@ -70,7 +92,9 @@ const ResumeUpload = ({ userId }: ResumeUploadProps) => {
 
       window.dispatchEvent(new Event("resume-uploaded"));
     } catch (error: any) {
-      toast.error(error.message || "Failed to upload resume");
+      console.error("Upload error:", error);
+      const errorMessage = error.message || error.toString() || "Failed to upload resume";
+      toast.error(errorMessage);
     } finally {
       setUploading(false);
     }
