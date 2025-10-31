@@ -75,7 +75,7 @@ const Auth = () => {
             <Shield className="w-8 h-8 text-primary-foreground" />
           </div>
           <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent mb-2">
-            SecureResume
+            ResumeWell
           </h1>
           <p className="text-muted-foreground">Your private resume vault</p>
         </div>

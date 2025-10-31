@@ -13,7 +13,7 @@ const Index = () => {
             <Shield className="w-5 h-5 text-primary-foreground" />
           </div>
           <h1 className="text-xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-            SecureResume
+            ResumeWell
           </h1>
         </div>
       </header>
@@ -75,7 +75,7 @@ const Index = () => {
             <div className="text-center max-w-2xl mx-auto">
               <h3 className="text-2xl font-bold mb-4">Ready to secure your resumes?</h3>
               <p className="text-muted-foreground mb-6">
-                Join hundreds of professionals who trust SecureResume for their document storage needs.
+                Join hundreds of professionals who trust ResumeWell for their document storage needs.
               </p>
               <Button size="lg" onClick={() => navigate("/auth")} className="gap-2">
                 Start Free Today
@@ -92,7 +92,7 @@ const Index = () => {
             <Lock className="w-4 h-4" />
             <span>Built with security and privacy at its core</span>
           </div>
-          <p>&copy; 2025 SecureResume. All rights reserved.</p>
+          <p>&copy; 2025 ResumeWell. All rights reserved.</p>
         </div>
       </footer>
     </div>
