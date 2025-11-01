@@ -10,6 +10,7 @@ interface Resume {
   id: string;
   file_name: string;
   file_path: string;
+  thumbnail_path?: string; // NEW: Add thumbnail path
   file_size: number;
   mime_type: string;
   uploaded_at: string;
@@ -25,24 +26,14 @@ const ResumeList = ({ userId }: ResumeListProps) => {
 
   const fetchResumes = async () => {
     try {
-      console.log("Fetching resumes for user:", userId);
-      
       const { data, error } = await supabase
         .from("resumes")
         .select("*")
         .eq("user_id", userId)
         .order("uploaded_at", { ascending: false });
-
-      console.log("Fetch resumes response:", { data, error });
-
-      if (error) {
-        console.error("Fetch resumes error:", error);
-        throw error;
-      }
-      
+      if (error) throw error;
       setResumes(data || []);
     } catch (error: any) {
-      console.error("Failed to load resumes:", error);
       toast.error(`Failed to load resumes: ${error.message || "Network error"}`);
     } finally {
       setLoading(false);
@@ -51,30 +42,17 @@ const ResumeList = ({ userId }: ResumeListProps) => {
 
   useEffect(() => {
     fetchResumes();
-
-    const handleResumeUploaded = () => {
-      fetchResumes();
-    };
-
+    const handleResumeUploaded = () => fetchResumes();
     window.addEventListener("resume-uploaded", handleResumeUploaded);
     return () => window.removeEventListener("resume-uploaded", handleResumeUploaded);
   }, [userId]);
 
   const handleDownload = async (resume: Resume) => {
     try {
-      console.log("Downloading resume:", resume.file_path);
-      
       const { data, error } = await supabase.storage
         .from("resumes")
         .download(resume.file_path);
-
-      console.log("Download response:", { data, error });
-
-      if (error) {
-        console.error("Download error:", error);
-        throw error;
-      }
-
+      if (error) throw error;
       const url = URL.createObjectURL(data);
       const a = document.createElement("a");
       a.href = url;
@@ -83,36 +61,35 @@ const ResumeList = ({ userId }: ResumeListProps) => {
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-
       toast.success("Resume downloaded");
     } catch (error: any) {
-      console.error("Download failed:", error);
       toast.error(`Failed to download: ${error.message || "Network error"}`);
     }
   };
 
   const handleDelete = async (resume: Resume) => {
     if (!confirm(`Are you sure you want to delete "${resume.file_name}"?`)) return;
-
     try {
       const { error: storageError } = await supabase.storage
         .from("resumes")
-        .remove([resume.file_path]);
-
+        .remove([resume.file_path, resume.thumbnail_path].filter(Boolean));
       if (storageError) throw storageError;
-
       const { error: dbError } = await supabase
         .from("resumes")
         .delete()
         .eq("id", resume.id);
-
       if (dbError) throw dbError;
-
       setResumes(resumes.filter((r) => r.id !== resume.id));
       toast.success("Resume deleted");
     } catch (error: any) {
       toast.error("Failed to delete resume");
     }
+  };
+
+  const getThumbnailUrl = (resume: Resume) => {
+    if (!resume.thumbnail_path) return null;
+    const { data } = supabase.storage.from("resumes").getPublicUrl(resume.thumbnail_path);
+    return data?.publicUrl || null;
   };
 
   if (loading) {
@@ -153,8 +130,16 @@ const ResumeList = ({ userId }: ResumeListProps) => {
                 key={resume.id}
                 className="flex items-center gap-4 p-4 border border-border rounded-lg hover:border-primary/50 transition-colors"
               >
-                <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-primary/10">
-                  <FileText className="w-5 h-5 text-primary" />
+                <div className="flex items-center justify-center w-16 h-16 rounded border bg-white">
+                  {resume.thumbnail_path ? (
+                    <img
+                      src={getThumbnailUrl(resume)}
+                      alt="Resume preview"
+                      className="object-contain w-16 h-16"
+                    />
+                  ) : (
+                    <FileText className="w-8 h-8 text-primary" />
+                  )}
                 </div>
                 <div className="flex-1 min-w-0">
                   <h3 className="font-medium truncate">{resume.file_name}</h3>
